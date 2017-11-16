@@ -6,9 +6,9 @@
 	real*8,parameter :: g=6.67d-7,pi=3.1415926d0	
 	
 	real*8 x(nrow),r(nr),dr,rhs(nrow),a(nrow,nrow),r_in,r_out,rpop(nr+1)
-	real*8 rho(nrow),out_bound,var(nnzero),v(nrow),mus,y(nrow)
+	real*8 rho(nrow),out_bound,var(nnzero),v(nrow),mus,y(nrow),x0(nrow)
 	real*8 teta(nteta),dteta,tetapop(nteta+1),teta_bound(nr),teta_niz,teta_verh
-	integer ncols(nnzero),nrows(nnzero),point(nrow+1)
+	integer ncols(nnzero),nrows(nnzero),point(nrow+1),nvarinrow
 	
 	integer i,j,k,ivar,irow
 	
@@ -56,6 +56,11 @@
 	write(1,*) teta(j),tetapop(j)
 	enddo
 
+
+
+
+
+
 	!!!!!!!!RHO
 	
 	
@@ -75,7 +80,8 @@
 	a=0.
 	ivar=1
 	var=0.
-
+	point(1)=1
+	
 !	open(1,file='ij')
 	do irow=1,nrow
 	
@@ -85,9 +91,16 @@
 			i=i-1
 			j=nteta
 		endif
+	
+	nvarinrow=5
+	if(i.eq.1.or.i.eq.nr)nvarinrow=nvarinrow-1
+	if(j.eq.1.or.j.eq.nteta)nvarinrow=nvarinrow-1	
+	point(irow+1)=point(irow)+nvarinrow
+
+
 
 	if(i.gt.1)then
-	var(ivar)=-rpop(i)**2/dr*(cos(tetapop(j+1))-cos(tetapop(j)))
+	var(ivar)=rpop(i)**2/dr
 	ncols(ivar)=irow-nteta
 	nrows(ivar)=irow
 	ivar=ivar+1
@@ -96,7 +109,7 @@
 
 
 	if(j.gt.1)then
-	var(ivar)=dr*sin(tetapop(j))/dteta
+	var(ivar)=dr*sin(tetapop(j))/dteta/(cos(tetapop(j+1))-cos(tetapop(j)))
 	ncols(ivar)=irow-1
 	nrows(ivar)=irow
 	ivar=ivar+1
@@ -105,12 +118,12 @@
 
 		
 !	a(i,i)=-(rpop(i)**2+rpop(i+1)**2)/dr   !!!AA
-		var(ivar)=(cos(tetapop(j+1))-cos(tetapop(j)))*(rpop(i)**2+rpop(i+1)**2)/dr &
-			 -dr*(sin(tetapop(j+1))+sin(tetapop(j)))/dteta
+		var(ivar)=-(rpop(i)**2+rpop(i+1)**2)/dr &
+			 -dr*(sin(tetapop(j+1))+sin(tetapop(j)))/dteta/(cos(tetapop(j+1))-cos(tetapop(j)))
 		if(j.eq.1)then
-		var(ivar)=var(ivar)+dr*sin(tetapop(j))/dteta
+		var(ivar)=var(ivar)+dr*sin(tetapop(j))/dteta/(cos(tetapop(j+1))-cos(tetapop(j)))
 		elseif(j.eq.nteta)then
-		var(ivar)=var(ivar)+dr*sin(tetapop(j+1))/dteta
+		var(ivar)=var(ivar)+dr*sin(tetapop(j+1))/dteta/(cos(tetapop(j+1))-cos(tetapop(j)))
 		endif		
 		ncols(ivar)=irow
 		nrows(ivar)=irow
@@ -119,14 +132,14 @@
 
 
 	if(j.lt.nteta)then
-	var(ivar)=dr*sin(tetapop(j+1))/dteta
+	var(ivar)=dr*sin(tetapop(j+1))/dteta/(cos(tetapop(j+1))-cos(tetapop(j)))
 	ncols(ivar)=irow+1
 	nrows(ivar)=irow
 	ivar=ivar+1
 	endif
 	
 	if(i.lt.nr)then
-	var(ivar)=-rpop(i+1)**2/dr*(cos(tetapop(j+1))-cos(tetapop(j)))    !!!BB
+	var(ivar)=rpop(i+1)**2/dr!*(cos(tetapop(j+1))-cos(tetapop(j)))    !!!BB
 	ncols(ivar)=irow+nteta
 	nrows(ivar)=irow
 	ivar=ivar+1
@@ -136,7 +149,7 @@
 	
 	!!!!RHS
 	
-	v(irow)=2*pi/3.*(rpop(i+1)**3-rpop(i)**3)*abs(cos(tetapop(j))-cos(tetapop(j+1)))
+	v(irow)=2*pi/3.*(rpop(i+1)**3-rpop(i)**3)!*abs(cos(tetapop(j))-cos(tetapop(j+1)))
 	rhs(irow)=-2*g*rho(irow)*v(irow)     !4*pi/3.*(rpop(i+1)**3-rpop(i)**3)     !!DD
 	if(i.eq.nr)then
 	rhs(irow)=rhs(irow)-out_bound*rpop(nr+1)**2/dr	
@@ -166,15 +179,7 @@
 	
 	!stop
 
-	point(1)=1
-	k=1
-	do i=1,nnzero
-	if(nrows(i).gt.k)then
-		point(k)=i
-		k=k+1
-	end if
-	enddo
-	point(nrow+1)=nnzero+1
+
 	
 !	write(*,*) point
 !	stop
@@ -183,6 +188,7 @@
 	
 	do i=1,nrow
 	x(i)=teta_bound((i-1)/nteta+1)
+	x0(i)=x(i)
 	enddo
 
 	call amux(nrow,x,y,var,ncols,point)
@@ -215,10 +221,10 @@
 	do i=1,nrow
 
 	if(mod(i,nteta).eq.1)then
-	write(1,*) r(i/nteta+1),x(i)
+	write(1,*) r(i/nteta+1),x0-x0(i)-x(i)*0.5
 	endif
 	enddo
-	!write(1,*) r(nr)+dr,out_bound
+	write(1,*) r(nr)+dr,out_bound
 	close(1)	
 	end
 	
