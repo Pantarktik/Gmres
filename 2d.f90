@@ -51,10 +51,11 @@
 	
 
 
-	open(1,file='teta2d')
-	do j=1,nteta
-	write(1,*) teta(j),tetapop(j)
-	enddo
+	!open(1,file='teta2d')
+	!do j=1,nteta!!
+	!write(1,*) teta(j),tetapop(j)
+	!enddo
+	!close(1)
 
 
 
@@ -221,10 +222,10 @@
 	do i=1,nrow
 
 	if(mod(i,nteta).eq.1)then
-	write(1,*) r(i/nteta+1),x0-x0(i)-x(i)*0.5
+	write(1,*) r(i/nteta+1),x(i),-2./3.*pi*r(i/nteta+1)**2*rho(i)*g-3./5.*pi*r_out**3*rho(1)*g/r_out
 	endif
 	enddo
-	write(1,*) r(nr)+dr,out_bound
+	write(1,*) r(nr)+dr,out_bound,-2./3.*pi*(r(nr)+dr)**2*rho(nr)*g-3./5.*pi*r_out**3*rho(1)*g/r_out
 	close(1)	
 	end
 	
