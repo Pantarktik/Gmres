@@ -63,7 +63,7 @@
 	!!!!RHS
 	
 	do i=1,nr
-	rhs(i)=-4*pi*g*rho(i)*4*pi/3.*(rpop(i+1)**3-rpop(i)**3)     !!DD
+	rhs(i)=-g*rho(i)*4*pi/3.*(rpop(i+1)**3-rpop(i)**3)     !!DD
 	enddo
 	
 	rhs(nr)=rhs(nr)-out_bound*rpop(nr+1)**2/ddr
